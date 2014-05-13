@@ -6,7 +6,7 @@
   },
   "private": true,
   "scripts": {
-    "start": "./node_modules/coffee-script/bin/coffee test.coffee",
+    "start": "./node_modules/coffee-script/bin/coffee go.coffee",
     "preinstall": "npm prune"
   },
   "dependencies": {
