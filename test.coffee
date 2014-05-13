@@ -27,16 +27,19 @@ async.auto
         next null, db
 
   get_all_tables: ['connect_mongo', 'connect_sqlserver', (next, results) ->
+    normal_table = (x) ->
+      return x.TABLE_TYPE=='BASE TABLE' and x.TABLE_SCHEMA=='dbo'
+
     request = new mssql.Request results.connect_sqlserver
     request.query 'SELECT * FROM INFORMATION_SCHEMA.TABLES', (err, rs) ->
-      next err, (x.TABLE_NAME for x in rs when x.TABLE_TYPE=='BASE TABLE')
+      next err, (x.TABLE_NAME for x in rs when normal_table x)
   ]
 
-  copy_to_mongo: ['get_all_tables', (next, results) ->
+  list_counts: ['get_all_tables', (next, results) ->
     async.eachSeries results.get_all_tables, (table, cb) ->
       request = new mssql.Request results.connect_sqlserver
-      request.query "SELECT COUNT(*) FROM #{table}", (err, rs) ->
-        console.log "#{table}: #{JSON.stringify rs}"
+      request.query "SELECT COUNT(*) AS count FROM [#{table}]", (err, rs) ->
+        console.log "#{table}: #{rs[0].count}"
         cb()
     , (err) ->
       next err, null
