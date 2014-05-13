@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "coffee-script": "1.6.3",
-    "minimist": "0.1.0"
+    "minimist": "0.1.0",
+    "bson": "0.2.7",
+    "mongodb": "1.4.3"
   }
 }
