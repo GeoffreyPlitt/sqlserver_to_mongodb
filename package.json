@@ -1,0 +1,16 @@
+{
+  "name": "sqlserver_to_mongodb",
+  "version": "0.0.1",
+  "engines": {
+    "node": "0.10.x"
+  },
+  "private": true,
+  "scripts": {
+    "start": "./node_modules/coffee-script/bin/coffee test.coffee",
+    "preinstall": "npm prune"
+  },
+  "dependencies": {
+    "coffee-script": "1.6.3",
+    "minimist": "0.1.0"
+  }
+}
