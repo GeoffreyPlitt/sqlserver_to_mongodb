@@ -11,6 +11,12 @@ You need to create a client_secrets.json like this, filling in your values:
 
     {
       "mongo_uri": "mongodb://user:pass@host:port/db"
-      "sqlserver_uri": "tcp://ngrok:YOUR_NGROK_PORT"
+      "sqlserver_conn": { 
+        "user": "user",
+        "password": "pass",
+        "server": "ngrok.com",
+        "port": "YOUR_NGROK_PORT",
+        "database": "db"
+      }
     }
 
