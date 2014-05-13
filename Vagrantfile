@@ -13,9 +13,6 @@ $BOOTSTRAP_SCRIPT = <<EOF
 	# Make vagrant automatically go to /vagrant when we ssh in.
 	echo "cd /vagrant" | sudo tee -a ~vagrant/.profile
 
-	# PREREQS
-	# apt-get install -y ...
-
 	# Install node modules and bower components
 	sudo su vagrant -c bash -l -c 'cd /vagrant && npm install'
 
