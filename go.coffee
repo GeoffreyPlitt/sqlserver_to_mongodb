@@ -6,6 +6,8 @@ mssql = require 'mssql'
 async = require 'async'
 
 ROWCOUNTS_CONCURRENCY = 16
+DATA_COPY_CONCURRENCY = 16
+CLEAR_DATABASE = false # SET TO TRUE TO CLEAR YOUR DATABASE
 
 handle_err = (err) ->
   if err
@@ -49,6 +51,37 @@ async.auto
     , (err) ->
       console.log 'done.'
       next err, null
+  ]
+
+  get_all_data: ['sanity_check_row_counts', (next, results) ->
+    process.stdout.write 'Copying data...'
+    db = results.connect_mongo
+
+    do_the_copying = ->
+      async.eachLimit results.get_all_tables, DATA_COPY_CONCURRENCY, (table, cb) ->
+        request = new mssql.Request results.connect_sqlserver
+        request.query "SELECT * FROM [#{table}]", (err, rs) ->
+          if rs.length==0
+            cb null
+          else
+            db.collection(table).insert rs, {w:1}, (err, objects) ->
+              if err
+                cb err
+              else
+                assert.equal objects?.length, rs?.length
+                cb null
+      , (err) ->
+        console.log 'done.'
+        next err, null
+
+    if CLEAR_DATABASE
+      db.dropDatabase (err, res) ->
+        if err
+          next err, null
+        else
+          do_the_copying()
+    else
+      do_the_copying()
   ]
 
 , (err, res) ->
