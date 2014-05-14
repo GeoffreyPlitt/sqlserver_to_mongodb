@@ -5,6 +5,8 @@ assert = require 'assert'
 mssql = require 'mssql'
 async = require 'async'
 
+ROWCOUNTS_CONCURRENCY = 16
+
 handle_err = (err) ->
   if err
     console.log "ERROR: ", err
@@ -35,13 +37,17 @@ async.auto
       next err, (x.TABLE_NAME for x in rs when normal_table x)
   ]
 
-  list_counts: ['get_all_tables', (next, results) ->
-    async.eachSeries results.get_all_tables, (table, cb) ->
+  sanity_check_row_counts: ['get_all_tables', (next, results) ->
+    process.stdout.write 'Verifying that all tables have non-negative row counts...'
+    async.eachLimit results.get_all_tables, ROWCOUNTS_CONCURRENCY, (table, cb) ->
       request = new mssql.Request results.connect_sqlserver
       request.query "SELECT COUNT(*) AS count FROM [#{table}]", (err, rs) ->
-        console.log "#{table}: #{rs[0].count}"
+        #console.log "#{table}: #{rs[0].count}"
+        assert.equal 'number', typeof rs[0].count
+        assert rs[0].count >= 0
         cb()
     , (err) ->
+      console.log 'done.'
       next err, null
   ]
 
