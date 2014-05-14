@@ -7,7 +7,7 @@ async = require 'async'
 
 ROWCOUNTS_CONCURRENCY = 16
 DATA_COPY_CONCURRENCY = 16
-CLEAR_DATABASE = false # SET TO TRUE TO CLEAR YOUR DATABASE
+CLEAR_DATABASE = false # Set to true to delete all collections from mongodb.
 
 handle_err = (err) ->
   if err
@@ -53,39 +53,48 @@ async.auto
       next err, null
   ]
 
-  get_all_data: ['sanity_check_row_counts', (next, results) ->
-    process.stdout.write 'Copying data...'
-    db = results.connect_mongo
-
-    do_the_copying = ->
-      async.eachLimit results.get_all_tables, DATA_COPY_CONCURRENCY, (table, cb) ->
-        request = new mssql.Request results.connect_sqlserver
-        request.query "SELECT * FROM [#{table}]", (err, rs) ->
-          if rs.length==0
-            cb null
-          else
-            db.collection(table).insert rs, {w:1}, (err, objects) ->
-              if err
-                cb err
-              else
-                assert.equal objects?.length, rs?.length
-                cb null
-      , (err) ->
-        console.log 'done.'
-        next err, null
-
+  drop_existing_collections: ['sanity_check_row_counts', (next, results) ->
     if CLEAR_DATABASE
-      db.dropDatabase (err, res) ->
+      process.stdout.write 'Dropping all collections...'
+      db = results.connect_mongo
+      db.collectionNames (err, res) ->
         if err
           next err, null
         else
-          do_the_copying()
+          collections = (x.name.replace(db.databaseName + '.', '') for x in res when x.name.indexOf('.system.')==-1)
+          collections.sort()
+          async.eachLimit collections, DATA_COPY_CONCURRENCY, (collection, cb) ->
+            db.dropCollection collection, (err, result) ->
+              cb err
+          , (err) ->
+            console.log 'done.'
+            next err, null
     else
-      do_the_copying()
+      next null, null
+  ]
+
+  get_all_data: ['drop_existing_collections', (next, results) ->
+    process.stdout.write 'Copying data...'
+    db = results.connect_mongo
+    async.eachLimit results.get_all_tables, DATA_COPY_CONCURRENCY, (table, cb) ->
+      request = new mssql.Request results.connect_sqlserver
+      request.query "SELECT * FROM [#{table}]", (err, rs) ->
+        if rs.length==0
+          cb null
+        else
+          db.collection(table).insert rs, {w:1}, (err, objects) ->
+            if err
+              cb err
+            else
+              assert.equal objects?.length, rs?.length
+              cb null
+    , (err) ->
+      console.log 'done.'
+      next err, null
   ]
 
 , (err, res) ->
-  res.connect_sqlserver.close()
+  res.connect_sqlserver?.close()
   if err
     console.log err
   else
