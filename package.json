@@ -14,7 +14,7 @@
     "coffee-script": "1.6.3",
     "minimist": "1.2.5",
     "bson": "0.2.7",
-    "mongodb": "1.4.3",
+    "mongodb": "3.6.1",
     "mssql": "*"
   }
 }
